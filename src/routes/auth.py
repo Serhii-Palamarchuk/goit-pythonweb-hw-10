@@ -87,6 +87,14 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Check if email is verified
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email not verified. Please verify your account first.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Create access token
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
