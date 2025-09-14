@@ -19,11 +19,16 @@ class CloudinaryService:
     def upload_image(file: UploadFile, folder: str = "avatars"):
         """Upload image to Cloudinary and return URL."""
         try:
+            # Remove file extension from filename to avoid double extensions
+            filename_without_ext = file.filename
+            if filename_without_ext and "." in filename_without_ext:
+                filename_without_ext = filename_without_ext.rsplit(".", 1)[0]
+
             # Upload image
             result = cloudinary.uploader.upload(
                 file.file,
                 folder=folder,
-                public_id=f"{folder}/{file.filename}",
+                public_id=filename_without_ext,
                 overwrite=True,
                 resource_type="image",
                 transformation=[
