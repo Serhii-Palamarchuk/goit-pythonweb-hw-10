@@ -4,31 +4,44 @@ from typing import List, Optional
 from sqlalchemy import and_, extract
 from sqlalchemy.orm import Session
 
-from src.database.models import Contact
+from src.database.models import Contact, User
 from src.schemas.contacts import ContactCreate, ContactUpdate
 
 
-def get_contact(db: Session, contact_id: int) -> Optional[Contact]:
-    return db.query(Contact).filter(Contact.id == contact_id).first()
+def get_contact(db: Session, contact_id: int, user: User) -> Optional[Contact]:
+    return (
+        db.query(Contact)
+        .filter(Contact.id == contact_id, Contact.owner_id == user.id)
+        .first()
+    )
 
 
-def get_contacts(db: Session, skip: int = 0, limit: int = 100) -> List[Contact]:
-    return db.query(Contact).offset(skip).limit(limit).all()
+def get_contacts(
+    db: Session, user: User, skip: int = 0, limit: int = 100
+) -> List[Contact]:
+    return (
+        db.query(Contact)
+        .filter(Contact.owner_id == user.id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
-def search_contacts(db: Session, query: str) -> List[Contact]:
+def search_contacts(db: Session, user: User, query: str) -> List[Contact]:
     return (
         db.query(Contact)
         .filter(
+            Contact.owner_id == user.id,
             (Contact.first_name.ilike(f"%{query}%"))
             | (Contact.last_name.ilike(f"%{query}%"))
-            | (Contact.email.ilike(f"%{query}%"))
+            | (Contact.email.ilike(f"%{query}%")),
         )
         .all()
     )
 
 
-def get_upcoming_birthdays(db: Session) -> List[Contact]:
+def get_upcoming_birthdays(db: Session, user: User) -> List[Contact]:
     today = date.today()
     next_week = today + timedelta(days=7)
 
@@ -37,12 +50,13 @@ def get_upcoming_birthdays(db: Session) -> List[Contact]:
         return (
             db.query(Contact)
             .filter(
+                Contact.owner_id == user.id,
                 and_(
                     extract("month", Contact.birth_date) >= today.month,
                     extract("month", Contact.birth_date) <= next_week.month,
                     extract("day", Contact.birth_date) >= today.day,
                     extract("day", Contact.birth_date) <= next_week.day,
-                )
+                ),
             )
             .all()
         )
@@ -51,6 +65,7 @@ def get_upcoming_birthdays(db: Session) -> List[Contact]:
         return (
             db.query(Contact)
             .filter(
+                Contact.owner_id == user.id,
                 (
                     and_(
                         extract("month", Contact.birth_date) == today.month,
@@ -62,14 +77,14 @@ def get_upcoming_birthdays(db: Session) -> List[Contact]:
                         extract("month", Contact.birth_date) == next_week.month,
                         extract("day", Contact.birth_date) <= next_week.day,
                     )
-                )
+                ),
             )
             .all()
         )
 
 
-def create_contact(db: Session, contact: ContactCreate) -> Contact:
-    db_contact = Contact(**contact.dict())
+def create_contact(db: Session, contact: ContactCreate, user: User) -> Contact:
+    db_contact = Contact(**contact.dict(), owner_id=user.id)
     db.add(db_contact)
     db.commit()
     db.refresh(db_contact)
@@ -77,9 +92,13 @@ def create_contact(db: Session, contact: ContactCreate) -> Contact:
 
 
 def update_contact(
-    db: Session, contact_id: int, contact: ContactUpdate
+    db: Session, contact_id: int, contact: ContactUpdate, user: User
 ) -> Optional[Contact]:
-    db_contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    db_contact = (
+        db.query(Contact)
+        .filter(Contact.id == contact_id, Contact.owner_id == user.id)
+        .first()
+    )
     if db_contact:
         contact_data = contact.dict(exclude_unset=True)
         for field, value in contact_data.items():
@@ -89,8 +108,12 @@ def update_contact(
     return db_contact
 
 
-def delete_contact(db: Session, contact_id: int) -> Optional[Contact]:
-    db_contact = db.query(Contact).filter(Contact.id == contact_id).first()
+def delete_contact(db: Session, contact_id: int, user: User) -> Optional[Contact]:
+    db_contact = (
+        db.query(Contact)
+        .filter(Contact.id == contact_id, Contact.owner_id == user.id)
+        .first()
+    )
     if db_contact:
         db.delete(db_contact)
         db.commit()
