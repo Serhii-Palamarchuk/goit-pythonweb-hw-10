@@ -25,7 +25,7 @@ from src.services.auth import (
     verify_password,
     get_email_from_token,
 )
-from src.services.email import send_email
+from src.services.email import send_verification_email_robust
 from src.services.cloudinary import cloudinary_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -61,7 +61,10 @@ async def signup(
 
     # Send verification email
     background_tasks.add_task(
-        send_email, new_user.email, new_user.username, str(request.base_url)
+        send_verification_email_robust,
+        new_user.email,
+        new_user.username,
+        str(request.base_url),
     )
 
     return new_user
@@ -122,7 +125,10 @@ async def request_email(
 
     if user and not user.is_verified:
         background_tasks.add_task(
-            send_email, user.email, user.username, str(request.base_url)
+            send_verification_email_robust,
+            user.email,
+            user.username,
+            str(request.base_url),
         )
     return {"message": "Check your email for confirmation."}
 

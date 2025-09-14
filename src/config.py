@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Завантажуємо змінні з .env файлу
+load_dotenv()
 
 
 class Settings:
