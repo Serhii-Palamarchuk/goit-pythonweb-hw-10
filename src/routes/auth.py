@@ -141,10 +141,24 @@ async def request_email(
     return {"message": "Check your email for confirmation."}
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))],
+)
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    """Get current user information."""
+    """Get current user information. Limited to 10 requests per minute."""
     return current_user
+
+
+# Temporary endpoint for testing rate limiting
+@router.get(
+    "/test-rate-limit",
+    dependencies=[Depends(RateLimiter(times=5, seconds=30))],
+)
+async def test_rate_limit():
+    """Test endpoint for rate limiting (5 requests per 30 seconds)."""
+    return {"message": "Rate limit test successful", "timestamp": "now"}
 
 
 @router.patch("/avatar", response_model=UserResponse)
