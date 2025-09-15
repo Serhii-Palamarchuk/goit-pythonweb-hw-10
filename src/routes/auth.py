@@ -151,16 +151,6 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-# Temporary endpoint for testing rate limiting
-@router.get(
-    "/test-rate-limit",
-    dependencies=[Depends(RateLimiter(times=5, seconds=30))],
-)
-async def test_rate_limit():
-    """Test endpoint for rate limiting (5 requests per 30 seconds)."""
-    return {"message": "Rate limit test successful", "timestamp": "now"}
-
-
 @router.patch("/avatar", response_model=UserResponse)
 async def update_avatar_user(
     file: UploadFile = File(...),
